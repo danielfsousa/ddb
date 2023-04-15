@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ddb.v1;
+
+service DdbService {
+  rpc Get(GetRequest) returns (GetResponse) {}
+  rpc Set(SetRequest) returns (SetResponse) {}
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  string key = 1;
+  bytes value = 2;
+}
+
+message SetRequest {
+  string key = 1;
+  bytes value = 2;
+}
+
+message SetResponse {
+}
