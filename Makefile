@@ -51,6 +51,11 @@ test-cov: ## Runs the tests with coverage.
 	@$(GO) test ./... -coverprofile=coverage.out
 .PHONY: test-cov
 
+bench: ## Runs benchmarking.
+	@echo "==> Bnechmarking ${NAME}"
+	@$(GO) test ./... -bench=.
+.PHONY: bench
+
 dep: ## Downloads the Go module.
 	@echo "==> Downloading Go module"
 	@$(GO) mod download

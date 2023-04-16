@@ -4,7 +4,7 @@ package ddb.v1;
 
 message Record {
   Mutation mutation = 1;
-  int32 timestamp = 2;
+  int64 timestamp = 2;
   string key = 3;
   bytes value = 4;
 }

@@ -17,6 +17,7 @@ import (
 // +----------+--------------+--------+
 // | 4 bytes  | 8 bytes      | ?      |
 // +----------+--------------+--------+
+
 const (
 	checksumWidth = 4
 	lenWidth      = 8
@@ -59,31 +60,33 @@ func (s *store) Append(in []byte) (n, pos uint64, err error) {
 	pos = s.size
 	recordLen := uint64(len(in))
 
+	// calculate checksum
 	s.crc.Reset()
 	if _, err = s.crc.Write(in); err != nil {
 		return 0, 0, err
 	}
 	checksum := s.crc.Sum32()
 
-	// write checksum of the record
-	if err = binary.Write(s.buf, encoding, checksum); err != nil {
-		return 0, 0, err
-	}
+	metadata := [metaWidth]byte{}
+	binary.BigEndian.PutUint32(metadata[:checksumWidth], checksum)
+	binary.BigEndian.PutUint64(metadata[checksumWidth:], recordLen)
 
-	// write length of the record
-	if err = binary.Write(s.buf, encoding, recordLen); err != nil {
-		return 0, 0, err
-	}
-
-	w, err := s.buf.Write(in)
+	// write metadata
+	bytesMetadata, err := s.buf.Write(metadata[:])
 	if err != nil {
 		return 0, 0, err
 	}
 
-	w += metaWidth
-	s.size += uint64(w)
+	// write data
+	bytesRecord, err := s.buf.Write(in)
+	if err != nil {
+		return 0, 0, err
+	}
 
-	return uint64(w), pos, nil
+	writtenBytes := uint64(bytesMetadata + bytesRecord)
+	s.size += writtenBytes
+
+	return writtenBytes, pos, nil
 }
 
 // Read returns the record stored at the given position.
