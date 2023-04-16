@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package ddb.v1;
+
+message Record {
+  Mutation mutation = 1;
+  int32 timestamp = 2;
+  string key = 3;
+  bytes value = 4;
+}
+
+enum Mutation {
+  MUTATION_UNSPECIFIED = 0;
+  MUTATION_PUT = 1;
+  MUTATION_DELETE = 2;
+}
+
+// message Record {
+//   string crc = 1;
+//   int32 timestamp = 2;
+//   int64 key_size = 3;
+//   int64 value_size = 4;
+//   string key = 5;
+//   bytes value = 6;
+// }

@@ -13,7 +13,7 @@ var cfgFile string
 
 var rootCmd = &cobra.Command{
 	Use:     "ddb",
-	Short:   "A distributed key/value database",
+	Short:   "A distributed key-value database",
 	Version: "0.1.0",
 }
 

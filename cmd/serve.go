@@ -6,7 +6,7 @@ import (
 	"path"
 	"runtime"
 
-	"github.com/danielfsousa/ddb/server"
+	"github.com/danielfsousa/ddb/internal/server"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

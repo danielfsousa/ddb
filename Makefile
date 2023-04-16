@@ -38,7 +38,7 @@ clean: ## Runs go clean and deletes binary.
 
 test: ## Runs the tests.
 	@echo "==> Testing ${NAME}"
-	@$(GO) test ./...
+	@$(GO) test -v ./...
 .PHONY: test
 
 test-race: ## Runs the test suite with the -race flag to identify race conditions, if they exist.
