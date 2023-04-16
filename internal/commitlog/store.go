@@ -34,7 +34,7 @@ type store struct {
 	*os.File
 	mu   sync.Mutex
 	buf  *bufio.Writer
-	crc  hash.Hash32
+	hash hash.Hash32
 	size uint64
 }
 
@@ -48,7 +48,7 @@ func newStore(f *os.File) (*store, error) {
 		File: f,
 		size: size,
 		buf:  bufio.NewWriter(f),
-		crc:  crc32.New(crcTable),
+		hash: crc32.New(crcTable),
 	}, nil
 }
 
@@ -61,11 +61,11 @@ func (s *store) Append(in []byte) (n, pos uint64, err error) {
 	recordLen := uint64(len(in))
 
 	// calculate checksum
-	s.crc.Reset()
-	if _, err = s.crc.Write(in); err != nil {
+	s.hash.Reset()
+	if _, err = s.hash.Write(in); err != nil {
 		return 0, 0, err
 	}
-	checksum := s.crc.Sum32()
+	checksum := s.hash.Sum32()
 
 	metadata := [metaWidth]byte{}
 	binary.BigEndian.PutUint32(metadata[:checksumWidth], checksum)

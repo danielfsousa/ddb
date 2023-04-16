@@ -18,7 +18,7 @@ import (
 var ErrEmptyKey = errors.New("key cannot be empty")
 
 // Server implements the DdbService API.
-type Server struct { //nolint:govet // ddbv1connect.UnimplementedDdbServiceHandler is a valid interface.
+type Server struct {
 	ddbv1connect.UnimplementedDdbServiceHandler
 	config     *Config
 	httpServer *http2.Server
