@@ -83,7 +83,6 @@ linters:
     - errcheck
     - exportloopref
     - funlen
-    - gochecknoinits
     - goconst
     - gocritic
     - gocyclo
@@ -110,6 +109,7 @@ linters:
     - whitespace
 
   # don't enable:
+  # - gochecknoinits
   # - asciicheck
   # - scopelint
   # - gochecknoglobals
