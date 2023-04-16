@@ -90,7 +90,7 @@ lint: ## Lints go files with golangci-lint and protobuf with buf.
 
 fmt: ## Formats go files with goimports.
 	@echo "==> Fixing imports"
-	@goimports -l -w ./
+	@goimports -w -l $$(find . -type f -name '*.go' -not -path "./gen/*")
 .PHONY: fmt
 
 gen: ## Generates protobuf files.
