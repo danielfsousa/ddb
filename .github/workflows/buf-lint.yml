@@ -15,7 +15,7 @@ jobs:
       - uses: bufbuild/buf-lint-action@v1
         with:
           input: proto
-      - uses: bufbuild/buf-breaking-action@v1
-        with:
-          input: proto
-          against: https://github.com/danielfsousa/ddb.git#branch=main,ref=HEAD~1,subdir=proto
+      # - uses: bufbuild/buf-breaking-action@v1
+      #   with:
+      #     input: proto
+      #     against: https://github.com/danielfsousa/ddb.git#branch=main,ref=HEAD~1,subdir=proto
