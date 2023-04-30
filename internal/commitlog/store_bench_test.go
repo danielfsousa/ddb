@@ -45,8 +45,7 @@ func benchmark(b *testing.B, dataSize, batchSize int) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		w, _ := proto.Marshal(record)
-		store.Append(w)
+		store.Append(record)
 		if batchSize > 0 && i%batchSize == 0 {
 			store.Sync()
 		}

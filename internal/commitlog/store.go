@@ -3,10 +3,16 @@ package commitlog
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"hash"
 	"hash/crc32"
+	"io"
 	"os"
 	"sync"
+
+	ddbv1 "github.com/danielfsousa/ddb/gen/ddb/v1"
+	"google.golang.org/protobuf/proto"
 )
 
 // =========== Store Format ===========
@@ -19,9 +25,9 @@ import (
 // +----------+--------------+--------+
 
 const (
-	checksumWidth = 4
-	lenWidth      = 8
-	metaWidth     = checksumWidth + lenWidth
+	checksumSize    = 4
+	recLenSize      = 8
+	storeHeaderSize = checksumSize + recLenSize
 )
 
 var (
@@ -53,32 +59,38 @@ func newStore(f *os.File) (*store, error) {
 }
 
 // Append persists the given bytes to the store.
-func (s *store) Append(in []byte) (n, pos uint64, err error) {
+func (s *store) Append(rec *ddbv1.Record) (n, pos uint64, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	b, err := proto.Marshal(rec)
+	if err != nil {
+		return 0, 0, fmt.Errorf("store failed to marshal record: %w", err)
+	}
+
 	pos = s.size
-	recordLen := uint64(len(in))
+	recordLen := uint64(len(b))
 
 	// calculate checksum
 	s.hash.Reset()
-	if _, err = s.hash.Write(in); err != nil {
+	if _, err = s.hash.Write(b); err != nil {
 		return 0, 0, err
 	}
 	checksum := s.hash.Sum32()
 
-	metadata := [metaWidth]byte{}
-	binary.BigEndian.PutUint32(metadata[:checksumWidth], checksum)
-	binary.BigEndian.PutUint64(metadata[checksumWidth:], recordLen)
+	// serialize header
+	metadata := [storeHeaderSize]byte{}
+	binary.BigEndian.PutUint32(metadata[:checksumSize], checksum)
+	binary.BigEndian.PutUint64(metadata[checksumSize:], recordLen)
 
-	// write metadata
+	// write header
 	bytesMetadata, err := s.buf.Write(metadata[:])
 	if err != nil {
 		return 0, 0, err
 	}
 
 	// write data
-	bytesRecord, err := s.buf.Write(in)
+	bytesRecord, err := s.buf.Write(b)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -90,7 +102,7 @@ func (s *store) Append(in []byte) (n, pos uint64, err error) {
 }
 
 // Read returns the record stored at the given position.
-func (s *store) Read(pos uint64) ([]byte, error) {
+func (s *store) Read(pos uint64) (*ddbv1.Record, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -98,21 +110,27 @@ func (s *store) Read(pos uint64) ([]byte, error) {
 		return nil, err
 	}
 
-	recordSize := make([]byte, lenWidth)
-	if _, err := s.File.ReadAt(recordSize, int64(pos+checksumWidth)); err != nil {
+	recordLen := make([]byte, recLenSize)
+	if _, err := s.File.ReadAt(recordLen, int64(pos+checksumSize)); err != nil {
 		return nil, err
 	}
 
-	bytes := make([]byte, encoding.Uint64(recordSize))
-	if _, err := s.File.ReadAt(bytes, int64(pos+metaWidth)); err != nil {
+	b := make([]byte, encoding.Uint64(recordLen))
+	if _, err := s.File.ReadAt(b, int64(pos+storeHeaderSize)); err != nil {
 		return nil, err
 	}
-	return bytes, nil
+
+	rec := &ddbv1.Record{}
+	if err := proto.Unmarshal(b, rec); err != nil {
+		return nil, fmt.Errorf("store failed to marshal record: %w", err)
+	}
+
+	return rec, nil
 }
 
-// ReadAt reads len(p) bytes from the store starting at byte offset off.
+// ReadAt reads len(in) bytes from the store starting at byte offset off.
 // It implements the io.ReaderAt interface.
-func (s *store) ReadAt(in []byte, off int64) (int, error) {
+func (s *store) ReadAt(in []byte, offset int64) (int, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -120,7 +138,7 @@ func (s *store) ReadAt(in []byte, off int64) (int, error) {
 		return 0, err
 	}
 
-	return s.File.ReadAt(in, off)
+	return s.File.ReadAt(in, offset)
 }
 
 // Sync flushes the store to disk.
@@ -143,4 +161,73 @@ func (s *store) Close() error {
 		return err
 	}
 	return s.File.Close()
+}
+
+// Scanner returns a new storeScanner for iterating over the records in the store.
+func (s *store) Scanner() (*storeScanner, error) {
+	f, err := os.Open(s.File.Name())
+	if err != nil {
+		return nil, err
+	}
+	return &storeScanner{
+		File:   f,
+		crc:    crc32.New(crcTable),
+		record: &ddbv1.Record{},
+	}, nil
+}
+
+// storeScanner enables iterating over the records in the store.
+type storeScanner struct {
+	*os.File
+	crc    hash.Hash32
+	record *ddbv1.Record
+	err    error
+}
+
+// Scan advances the scanner to the next record.
+func (s *storeScanner) Scan() bool {
+	s.record.Reset()
+
+	var head [storeHeaderSize]byte
+
+	if _, s.err = io.ReadFull(s.File, head[:]); s.err != nil {
+		if errors.Is(s.err, io.EOF) {
+			s.err = nil
+		}
+		return false
+	}
+
+	checksum := binary.BigEndian.Uint32(head[:checksumSize])
+	recordLen := binary.BigEndian.Uint64(head[checksumSize:])
+
+	data := make([]byte, recordLen)
+	if _, s.err = io.ReadFull(s.File, data); s.err != nil {
+		return false
+	}
+
+	s.crc.Reset()
+	if _, s.err = s.crc.Write(data); s.err != nil {
+		return false
+	}
+	c := s.crc.Sum32()
+	if c != checksum {
+		s.err = fmt.Errorf("checksum mismatch. Expected %d, got %d", checksum, c)
+		return false
+	}
+
+	if s.err = proto.Unmarshal(data, s.record); s.err != nil {
+		return false
+	}
+
+	return true
+}
+
+// Returns the current record.
+func (s *storeScanner) Next() *ddbv1.Record {
+	return s.record
+}
+
+// Returns last error encountered by the scanner.
+func (s *storeScanner) Err() error {
+	return s.err
 }

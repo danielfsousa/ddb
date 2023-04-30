@@ -3,14 +3,29 @@ package commitlog
 import (
 	"os"
 	"testing"
+	"time"
 
+	ddbv1 "github.com/danielfsousa/ddb/gen/ddb/v1"
 	"github.com/stretchr/testify/require"
+	"google.golang.org/protobuf/proto"
 )
 
-var expectedWrites = [][]byte{
-	[]byte("hello world 1"),
-	[]byte("hello world 2"),
-	[]byte("hello world 3"),
+var expectedWrites = []*ddbv1.Record{
+	{
+		Timestamp: time.Now().UnixNano(),
+		Key:       "1",
+		Value:     []byte("hello world 1"),
+	},
+	{
+		Timestamp: time.Now().UnixNano(),
+		Key:       "2",
+		Value:     []byte("hello world 2"),
+	},
+	{
+		Timestamp: time.Now().UnixNano(),
+		Key:       "3",
+		Value:     []byte("hello world 3"),
+	},
 }
 
 func TestStoreAppendReadScan(t *testing.T) {
@@ -34,7 +49,7 @@ func testAppend(t *testing.T, store *store) {
 	t.Helper()
 	for i := uint64(1); i < 4; i++ {
 		write := expectedWrites[i-1]
-		width := uint64(len(write)) + metaWidth
+		width := uint64(proto.Size(write)) + storeHeaderSize
 		n, pos, err := store.Append(write)
 		require.NoError(t, err)
 		require.Equal(t, pos+n, width*i)
@@ -47,17 +62,17 @@ func testRead(t *testing.T, store *store) {
 	for i := uint64(1); i < 4; i++ {
 		read, err := store.Read(pos)
 		require.NoError(t, err)
-		require.Equal(t, expectedWrites[i-1], read)
-		pos += uint64(len(read)) + metaWidth
+		require.True(t, proto.Equal(expectedWrites[i-1], read))
+		pos += uint64(proto.Size(read)) + storeHeaderSize
 	}
 }
 
 func testScanner(t *testing.T, store *store) {
 	t.Helper()
-	scanner := newStoreScanner(store)
-	i := 0
-	for scanner.Scan() {
-		require.Equal(t, expectedWrites[i], scanner.Record())
+	scanner, err := store.Scanner()
+	require.NoError(t, err)
+	for i := 0; scanner.Scan(); i++ {
+		require.True(t, proto.Equal(expectedWrites[i], scanner.Next()))
 	}
 	require.NoError(t, scanner.Err())
 }
@@ -65,19 +80,26 @@ func testScanner(t *testing.T, store *store) {
 func testReadAt(t *testing.T, store *store) {
 	t.Helper()
 	for i, off := uint64(1), int64(0); i < 4; i++ {
-		b := make([]byte, metaWidth)
+		b := make([]byte, storeHeaderSize)
 		n, err := store.ReadAt(b, off)
 		require.NoError(t, err)
-		require.Equal(t, metaWidth, n)
-		off += int64(metaWidth)
+		require.Equal(t, storeHeaderSize, n)
 
+		off += int64(storeHeaderSize)
 		write := expectedWrites[i-1]
-		recordLen := encoding.Uint64(b[checksumWidth:])
+		recordLen := encoding.Uint64(b[checksumSize:])
+
 		b = make([]byte, recordLen)
 		n, err = store.ReadAt(b, off)
 		require.NoError(t, err)
-		require.Equal(t, write, b)
+
+		rec := &ddbv1.Record{}
+		err = proto.Unmarshal(b, rec)
+		require.NoError(t, err)
+
+		require.True(t, proto.Equal(write, rec))
 		require.Equal(t, int(recordLen), n)
+
 		off += int64(n)
 	}
 }
