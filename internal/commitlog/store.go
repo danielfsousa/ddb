@@ -58,6 +58,11 @@ func newStore(f *os.File) (*store, error) {
 	}, nil
 }
 
+// Name returns the store's file path.
+func (s *store) Name() string {
+	return s.File.Name()
+}
+
 // Append persists the given bytes to the store.
 func (s *store) Append(rec *ddbv1.Record) (n, pos uint64, err error) {
 	s.mu.Lock()
@@ -170,7 +175,7 @@ func (s *store) Scanner() (*storeScanner, error) {
 		return nil, err
 	}
 	return &storeScanner{
-		File:   f,
+		file:   f,
 		crc:    crc32.New(crcTable),
 		record: &ddbv1.Record{},
 	}, nil
@@ -178,30 +183,32 @@ func (s *store) Scanner() (*storeScanner, error) {
 
 // storeScanner enables iterating over the records in the store.
 type storeScanner struct {
-	*os.File
-	crc    hash.Hash32
-	record *ddbv1.Record
-	err    error
+	file    *os.File
+	crc     hash.Hash32
+	record  *ddbv1.Record
+	pos     uint64
+	nextPos uint64
+	err     error
 }
 
 // Scan advances the scanner to the next record.
 func (s *storeScanner) Scan() bool {
 	s.record.Reset()
+	s.pos += s.nextPos
 
-	var head [storeHeaderSize]byte
-
-	if _, s.err = io.ReadFull(s.File, head[:]); s.err != nil {
+	var header [storeHeaderSize]byte
+	if _, s.err = io.ReadFull(s.file, header[:]); s.err != nil {
 		if errors.Is(s.err, io.EOF) {
 			s.err = nil
 		}
 		return false
 	}
 
-	checksum := binary.BigEndian.Uint32(head[:checksumSize])
-	recordLen := binary.BigEndian.Uint64(head[checksumSize:])
+	checksum := binary.BigEndian.Uint32(header[:checksumSize])
+	recordLen := binary.BigEndian.Uint64(header[checksumSize:])
 
 	data := make([]byte, recordLen)
-	if _, s.err = io.ReadFull(s.File, data); s.err != nil {
+	if _, s.err = io.ReadFull(s.file, data); s.err != nil {
 		return false
 	}
 
@@ -219,12 +226,14 @@ func (s *storeScanner) Scan() bool {
 		return false
 	}
 
+	s.nextPos += uint64(len(header) + len(data))
+
 	return true
 }
 
 // Returns the current record.
-func (s *storeScanner) Next() *ddbv1.Record {
-	return s.record
+func (s *storeScanner) Next() (rec *ddbv1.Record, pos uint64) {
+	return s.record, s.pos
 }
 
 // Returns last error encountered by the scanner.
