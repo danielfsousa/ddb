@@ -11,12 +11,7 @@ var expectedIndexKeys = []string{
 	"hello world 2",
 	"hello world 3",
 }
-
-var expectedIndexItems = []*item{
-	{offset: 0, timestamp: 0, size: 25},
-	{offset: 25, timestamp: 0, size: 25},
-	{offset: 50, timestamp: 0, size: 25},
-}
+var expectedIndexPos = []uint64{0, 25, 50}
 
 func TestIndexSetGetDelete(t *testing.T) {
 	idx := newIndex()
@@ -27,9 +22,9 @@ func TestIndexSetGetDelete(t *testing.T) {
 func testSetGet(t *testing.T, idx *index) {
 	t.Helper()
 	for i, key := range expectedIndexKeys {
-		idx.Set(key, expectedIndexItems[i])
+		idx.Set(key, expectedIndexPos[i])
 		item, exists := idx.Get(key)
-		require.Equal(t, expectedIndexItems[i], item)
+		require.Equal(t, expectedIndexPos[i], item)
 		require.True(t, exists)
 	}
 }
@@ -38,7 +33,7 @@ func testDeleteGet(t *testing.T, idx *index) {
 	t.Helper()
 
 	item, exists := idx.Get(expectedIndexKeys[0])
-	require.Equal(t, expectedIndexItems[0], item)
+	require.Equal(t, expectedIndexPos[0], item)
 	require.True(t, exists)
 
 	idx.Delete(expectedIndexKeys[0])

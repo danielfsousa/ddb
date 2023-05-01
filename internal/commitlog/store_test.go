@@ -72,7 +72,8 @@ func testScanner(t *testing.T, store *store) {
 	scanner, err := store.Scanner()
 	require.NoError(t, err)
 	for i := 0; scanner.Scan(); i++ {
-		require.True(t, proto.Equal(expectedWrites[i], scanner.Next()))
+		rec, _ := scanner.Next()
+		require.True(t, proto.Equal(expectedWrites[i], rec))
 	}
 	require.NoError(t, scanner.Err())
 }
