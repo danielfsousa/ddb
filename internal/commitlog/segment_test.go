@@ -31,7 +31,7 @@ func TestSegment(t *testing.T) {
 		err = segment.Append(want)
 		require.NoError(t, err)
 
-		got, exists, err := segment.Get(want.Key) //nolint
+		got, exists, err := segment.Get(want.Key)
 		require.NoError(t, err)
 		require.True(t, exists)
 		require.True(t, proto.Equal(want, got))
