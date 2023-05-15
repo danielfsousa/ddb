@@ -194,7 +194,6 @@ type storeScanner struct {
 // Scan advances the scanner to the next record.
 func (s *storeScanner) Scan() bool {
 	s.record.Reset()
-	s.pos += s.nextPos
 
 	var header [storeHeaderSize]byte
 	if _, s.err = io.ReadFull(s.file, header[:]); s.err != nil {
@@ -226,7 +225,8 @@ func (s *storeScanner) Scan() bool {
 		return false
 	}
 
-	s.nextPos += uint64(len(header) + len(data))
+	s.pos = s.nextPos
+	s.nextPos += storeHeaderSize + recordLen
 
 	return true
 }

@@ -61,7 +61,7 @@ func testInitExisting(t *testing.T, log *CommitLog) {
 			Value:     []byte("hi world"),
 		},
 		{
-			Timestamp: 99999999,
+			Timestamp: 99999,
 			Key:       "Keeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeey",
 			Value:     []byte("Vaaaaaaaaaaaaaaaaaaaaaaaaaaaaaalue"),
 		},

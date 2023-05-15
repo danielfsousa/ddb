@@ -38,6 +38,6 @@ func testDeleteGet(t *testing.T, idx *index) {
 
 	idx.Delete(expectedIndexKeys[0])
 	item, exists = idx.Get(expectedIndexKeys[0])
-	require.Nil(t, item)
+	require.Zero(t, item)
 	require.False(t, exists)
 }

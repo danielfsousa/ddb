@@ -28,11 +28,12 @@ func NewCommitLog(dir string, c Config) (*CommitLog, error) {
 	if c.Segment.MaxStoreBytes == 0 {
 		c.Segment.MaxStoreBytes = 1024
 	}
-	l := &CommitLog{
+	log := &CommitLog{
 		Dir:    dir,
 		Config: c,
 	}
-	return l, l.setup()
+	err := log.setup()
+	return log, err
 }
 
 func (l *CommitLog) setup() error {
