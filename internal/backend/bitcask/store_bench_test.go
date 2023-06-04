@@ -1,5 +1,5 @@
 //nolint:errcheck
-package commitlog
+package bitcask
 
 import (
 	"os"
@@ -13,17 +13,17 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func BenchmarkAppend100NoSync(b *testing.B)   { benchmark(b, 100, 0) }
-func BenchmarkAppend100NoBatch(b *testing.B)  { benchmark(b, 100, 1) }
-func BenchmarkAppend100Batch10(b *testing.B)  { benchmark(b, 100, 10) }
-func BenchmarkAppend100Batch100(b *testing.B) { benchmark(b, 100, 100) }
+func BenchmarkStoreAppend100NoSync(b *testing.B)   { benchmarkStore(b, 100, 0) }
+func BenchmarkStoreAppend100NoBatch(b *testing.B)  { benchmarkStore(b, 100, 1) }
+func BenchmarkStoreAppend100Batch10(b *testing.B)  { benchmarkStore(b, 100, 10) }
+func BenchmarkStoreAppend100Batch100(b *testing.B) { benchmarkStore(b, 100, 100) }
 
-func BenchmarkAppend1000NoSync(b *testing.B)   { benchmark(b, 1000, 0) }
-func BenchmarkAppend1000NoBatch(b *testing.B)  { benchmark(b, 1000, 1) }
-func BenchmarkAppend1000Batch10(b *testing.B)  { benchmark(b, 1000, 10) }
-func BenchmarkAppend1000Batch100(b *testing.B) { benchmark(b, 1000, 100) }
+func BenchmarkStoreAppend1000NoSync(b *testing.B)   { benchmarkStore(b, 1000, 0) }
+func BenchmarkStoreAppend1000NoBatch(b *testing.B)  { benchmarkStore(b, 1000, 1) }
+func BenchmarkStoreAppend1000Batch10(b *testing.B)  { benchmarkStore(b, 1000, 10) }
+func BenchmarkStoreAppend1000Batch100(b *testing.B) { benchmarkStore(b, 1000, 100) }
 
-func benchmark(b *testing.B, dataSize, batchSize int) {
+func benchmarkStore(b *testing.B, dataSize, batchSize int) {
 	b.Helper()
 	b.ReportAllocs()
 	tempdir := b.TempDir()

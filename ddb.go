@@ -5,7 +5,8 @@ import (
 	"time"
 
 	ddbv1 "github.com/danielfsousa/ddb/gen/ddb/v1"
-	"github.com/danielfsousa/ddb/internal/commitlog"
+	"github.com/danielfsousa/ddb/internal/backend"
+	"github.com/danielfsousa/ddb/internal/backend/bitcask"
 	"github.com/danielfsousa/ddb/internal/config"
 )
 
@@ -25,9 +26,9 @@ var (
 
 // Ddb is a distributed key-value store consisting of a commit log and an in-memory index hash map.
 type Ddb struct {
-	config *config.Config
-	log    *commitlog.CommitLog
-	dir    string
+	config  *config.Config
+	backend backend.Backend
+	dir     string
 }
 
 // Open opens a new Ddb instance at the given directory.
@@ -39,21 +40,21 @@ func Open(dir string, options ...Option) (*Ddb, error) {
 		}
 	}
 
-	log, err := commitlog.NewCommitLog(dir, commitlog.Config{})
+	back, err := bitcask.NewBitcaskBackend(dir, bitcask.Config{})
 	if err != nil {
 		return nil, err
 	}
 
 	return &Ddb{
-		config: cfg,
-		log:    log,
-		dir:    dir,
+		config:  cfg,
+		backend: back,
+		dir:     dir,
 	}, nil
 }
 
 // Has returns true if the given key exists in the database.
 func (d *Ddb) Has(key string) bool {
-	meta, exists := d.log.GetMetadata(key)
+	meta, exists := d.backend.GetMetadata(key)
 	return exists && meta.DeletedAt == nil
 }
 
@@ -62,7 +63,7 @@ func (d *Ddb) Get(key string) ([]byte, error) {
 	if !d.Has(key) {
 		return nil, ErrKeyNotFound
 	}
-	rec, exists, err := d.log.Get(key)
+	rec, exists, err := d.backend.Get(key)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +89,7 @@ func (d *Ddb) Set(key string, val []byte) error {
 		Key:   key,
 		Value: val,
 	}
-	return d.log.Append(rec)
+	return d.backend.Set(rec)
 }
 
 // Delete deletes the value for the given key.
@@ -101,7 +102,7 @@ func (d *Ddb) Delete(key string) error {
 		Key:       key,
 		DeletedAt: &t,
 	}
-	return d.log.Append(rec)
+	return d.backend.Set(rec)
 }
 
 // Sync flushes all buffers to disk, ensuring that all writes persisted.
@@ -111,7 +112,7 @@ func (d *Ddb) Delete(key string) error {
 
 // Close closes the Ddb instance.
 func (d *Ddb) Close() error {
-	return d.log.Close()
+	return d.backend.Close()
 }
 
 // Statistics represents statistics about the Ddb instance.

@@ -56,7 +56,7 @@ test-cov: ## Runs the tests with coverage.
 .PHONY: test-cov
 
 bench: ## Runs benchmarking.
-	@echo "==> Bnechmarking ${NAME}"
+	@echo "==> Benchmarking ${NAME}"
 	@$(GO) test ./... -bench=.
 .PHONY: bench
 

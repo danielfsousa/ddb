@@ -1,4 +1,4 @@
-package commitlog
+package bitcask
 
 import (
 	"os"

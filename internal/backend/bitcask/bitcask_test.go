@@ -1,4 +1,4 @@
-package commitlog
+package bitcask
 
 import (
 	"testing"
@@ -9,7 +9,7 @@ import (
 )
 
 func TestCommitLog(t *testing.T) {
-	tests := map[string]func(t *testing.T, log *CommitLog){
+	tests := map[string]func(t *testing.T, log *Bitcask){
 		"append and read a record succeeds": testAppendGet,
 		"init with existing segments":       testInitExisting,
 	}
@@ -19,7 +19,7 @@ func TestCommitLog(t *testing.T) {
 
 			config := Config{}
 			config.Segment.MaxStoreBytes = 1024
-			log, err := NewCommitLog(dir, config)
+			log, err := NewBitcaskBackend(dir, config)
 			require.NoError(t, err)
 
 			fn(t, log)
@@ -27,14 +27,14 @@ func TestCommitLog(t *testing.T) {
 	}
 }
 
-func testAppendGet(t *testing.T, log *CommitLog) {
+func testAppendGet(t *testing.T, log *Bitcask) {
 	want := &ddbv1.Record{
 		Timestamp: 12345,
 		Key:       "foo",
 		Value:     []byte("hello world"),
 	}
 
-	err := log.Append(want)
+	err := log.Set(want)
 	require.NoError(t, err)
 
 	got, exists, err := log.Get(want.Key)
@@ -48,7 +48,7 @@ func testAppendGet(t *testing.T, log *CommitLog) {
 	require.Nil(t, got)
 }
 
-func testInitExisting(t *testing.T, log *CommitLog) {
+func testInitExisting(t *testing.T, log *Bitcask) {
 	recs := []*ddbv1.Record{
 		{
 			Timestamp: 12345,
@@ -68,12 +68,12 @@ func testInitExisting(t *testing.T, log *CommitLog) {
 	}
 
 	for _, want := range recs {
-		err := log.Append(want)
+		err := log.Set(want)
 		require.NoError(t, err)
 	}
 
 	log.Close()
-	log, err := NewCommitLog(log.Dir, log.Config)
+	log, err := NewBitcaskBackend(log.Dir, log.Config)
 	require.NoError(t, err)
 
 	for _, want := range recs {

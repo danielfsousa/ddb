@@ -14,7 +14,7 @@
 ## Storage engine
 
 - [x] Delete tombstone
-- [ ] Backend interface
+- [x] Backend interface
 - [ ] Global index instead of 1 index per segment?
 - [ ] Merging: delete tombstones and write hint file
 - [ ] Snapshot isolation: MVCC

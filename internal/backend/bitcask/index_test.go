@@ -1,8 +1,9 @@
-package commitlog
+package bitcask
 
 import (
 	"testing"
 
+	"github.com/danielfsousa/ddb/internal/backend"
 	"github.com/stretchr/testify/require"
 )
 
@@ -11,7 +12,7 @@ var expectedIndexKeys = []string{
 	"hello world 2",
 	"hello world 3",
 }
-var expectedIndexPos = []RecordMetadata{
+var expectedIndexPos = []backend.RecordMetadata{
 	{Pos: 0, DeletedAt: nil},
 	{Pos: 25, DeletedAt: nil},
 	{Pos: 50, DeletedAt: nil},

@@ -1,4 +1,4 @@
-package commitlog
+package bitcask
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 	"path"
 
 	ddbv1 "github.com/danielfsousa/ddb/gen/ddb/v1"
+	"github.com/danielfsousa/ddb/internal/backend"
 	"github.com/danielfsousa/ddb/pkg/fmode"
 )
 
@@ -79,7 +80,7 @@ func buildIndex(hint *hint, store *store) (idx *index, err error) {
 				return nil, err
 			}
 			key, pos := scanner.Next()
-			idx.Set(key, RecordMetadata{Pos: pos})
+			idx.Set(key, backend.RecordMetadata{Pos: pos})
 		}
 	} else {
 		scanner, err := store.Scanner()
@@ -91,7 +92,7 @@ func buildIndex(hint *hint, store *store) (idx *index, err error) {
 				return nil, err
 			}
 			rec, pos := scanner.Next()
-			idx.Set(rec.Key, RecordMetadata{Pos: pos, DeletedAt: rec.DeletedAt})
+			idx.Set(rec.Key, backend.RecordMetadata{Pos: pos, DeletedAt: rec.DeletedAt})
 		}
 	}
 	return idx, nil
@@ -111,7 +112,7 @@ func (s *segment) Append(record *ddbv1.Record) error {
 	if err != nil {
 		return err
 	}
-	s.index.Set(record.Key, RecordMetadata{Pos: pos, DeletedAt: record.DeletedAt})
+	s.index.Set(record.Key, backend.RecordMetadata{Pos: pos, DeletedAt: record.DeletedAt})
 	return nil
 }
 
@@ -128,7 +129,7 @@ func (s *segment) Get(key string) (rec *ddbv1.Record, exists bool, err error) {
 	return rec, true, nil
 }
 
-func (s *segment) GetMetadata(key string) (entry RecordMetadata, exists bool) {
+func (s *segment) GetMetadata(key string) (entry backend.RecordMetadata, exists bool) {
 	return s.index.Get(key)
 }
 
@@ -143,7 +144,12 @@ func (s *segment) IsMaxed() bool {
 	return s.store.size >= s.config.Segment.MaxStoreBytes
 }
 
-// Close  and closes the store and hint files.
+// Sync flushes the store file to disk.
+func (s *segment) Sync() error {
+	return s.store.Sync()
+}
+
+// Close closes the store and hint files.
 func (s *segment) Close() error {
 	if err := s.store.Close(); err != nil {
 		return err
