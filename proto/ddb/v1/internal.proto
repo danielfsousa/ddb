@@ -2,18 +2,19 @@ syntax = "proto3";
 
 package ddb.v1;
 
+// Record represent a kew/value pair in the database.
 message Record {
   int64 timestamp = 1;
-  Mutation mutation = 2;
-  string key = 3;
-  bytes value = 4;
+  string key = 2;
+  bytes value = 3;
+  optional int64 deleted_at = 4;
 }
 
-enum Mutation {
-  MUTATION_UNSPECIFIED = 0;
-  MUTATION_PUT = 1;
-  MUTATION_DELETE = 2;
-}
+// enum Mutation {
+//   MUTATION_UNSPECIFIED = 0;
+//   MUTATION_PUT = 1;
+//   MUTATION_DELETE = 2;
+// }
 
 // message Record {
 //   string crc = 1;

@@ -33,7 +33,6 @@ func benchmark(b *testing.B, dataSize, batchSize int) {
 	defer f.Close()
 
 	record := &ddbv1.Record{
-		Mutation:  ddbv1.Mutation_MUTATION_PUT,
 		Timestamp: time.Now().Unix(),
 		Key:       "key",
 		Value:     []byte(strings.Repeat("a", dataSize)),

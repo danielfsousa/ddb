@@ -33,16 +33,22 @@ const (
 // reflection-formatted method names, remove the leading slash and convert the remaining slash to a
 // period.
 const (
+	// DdbServiceHasProcedure is the fully-qualified name of the DdbService's Has RPC.
+	DdbServiceHasProcedure = "/ddb.v1.DdbService/Has"
 	// DdbServiceGetProcedure is the fully-qualified name of the DdbService's Get RPC.
 	DdbServiceGetProcedure = "/ddb.v1.DdbService/Get"
 	// DdbServiceSetProcedure is the fully-qualified name of the DdbService's Set RPC.
 	DdbServiceSetProcedure = "/ddb.v1.DdbService/Set"
+	// DdbServiceDeleteProcedure is the fully-qualified name of the DdbService's Delete RPC.
+	DdbServiceDeleteProcedure = "/ddb.v1.DdbService/Delete"
 )
 
 // DdbServiceClient is a client for the ddb.v1.DdbService service.
 type DdbServiceClient interface {
+	Has(context.Context, *connect_go.Request[v1.HasRequest]) (*connect_go.Response[v1.HasResponse], error)
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
 	Set(context.Context, *connect_go.Request[v1.SetRequest]) (*connect_go.Response[v1.SetResponse], error)
+	Delete(context.Context, *connect_go.Request[v1.DeleteRequest]) (*connect_go.Response[v1.DeleteResponse], error)
 }
 
 // NewDdbServiceClient constructs a client for the ddb.v1.DdbService service. By default, it uses
@@ -55,6 +61,11 @@ type DdbServiceClient interface {
 func NewDdbServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts ...connect_go.ClientOption) DdbServiceClient {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &ddbServiceClient{
+		has: connect_go.NewClient[v1.HasRequest, v1.HasResponse](
+			httpClient,
+			baseURL+DdbServiceHasProcedure,
+			opts...,
+		),
 		get: connect_go.NewClient[v1.GetRequest, v1.GetResponse](
 			httpClient,
 			baseURL+DdbServiceGetProcedure,
@@ -65,13 +76,25 @@ func NewDdbServiceClient(httpClient connect_go.HTTPClient, baseURL string, opts 
 			baseURL+DdbServiceSetProcedure,
 			opts...,
 		),
+		delete: connect_go.NewClient[v1.DeleteRequest, v1.DeleteResponse](
+			httpClient,
+			baseURL+DdbServiceDeleteProcedure,
+			opts...,
+		),
 	}
 }
 
 // ddbServiceClient implements DdbServiceClient.
 type ddbServiceClient struct {
-	get *connect_go.Client[v1.GetRequest, v1.GetResponse]
-	set *connect_go.Client[v1.SetRequest, v1.SetResponse]
+	has    *connect_go.Client[v1.HasRequest, v1.HasResponse]
+	get    *connect_go.Client[v1.GetRequest, v1.GetResponse]
+	set    *connect_go.Client[v1.SetRequest, v1.SetResponse]
+	delete *connect_go.Client[v1.DeleteRequest, v1.DeleteResponse]
+}
+
+// Has calls ddb.v1.DdbService.Has.
+func (c *ddbServiceClient) Has(ctx context.Context, req *connect_go.Request[v1.HasRequest]) (*connect_go.Response[v1.HasResponse], error) {
+	return c.has.CallUnary(ctx, req)
 }
 
 // Get calls ddb.v1.DdbService.Get.
@@ -84,10 +107,17 @@ func (c *ddbServiceClient) Set(ctx context.Context, req *connect_go.Request[v1.S
 	return c.set.CallUnary(ctx, req)
 }
 
+// Delete calls ddb.v1.DdbService.Delete.
+func (c *ddbServiceClient) Delete(ctx context.Context, req *connect_go.Request[v1.DeleteRequest]) (*connect_go.Response[v1.DeleteResponse], error) {
+	return c.delete.CallUnary(ctx, req)
+}
+
 // DdbServiceHandler is an implementation of the ddb.v1.DdbService service.
 type DdbServiceHandler interface {
+	Has(context.Context, *connect_go.Request[v1.HasRequest]) (*connect_go.Response[v1.HasResponse], error)
 	Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error)
 	Set(context.Context, *connect_go.Request[v1.SetRequest]) (*connect_go.Response[v1.SetResponse], error)
+	Delete(context.Context, *connect_go.Request[v1.DeleteRequest]) (*connect_go.Response[v1.DeleteResponse], error)
 }
 
 // NewDdbServiceHandler builds an HTTP handler from the service implementation. It returns the path
@@ -97,6 +127,11 @@ type DdbServiceHandler interface {
 // and JSON codecs. They also support gzip compression.
 func NewDdbServiceHandler(svc DdbServiceHandler, opts ...connect_go.HandlerOption) (string, http.Handler) {
 	mux := http.NewServeMux()
+	mux.Handle(DdbServiceHasProcedure, connect_go.NewUnaryHandler(
+		DdbServiceHasProcedure,
+		svc.Has,
+		opts...,
+	))
 	mux.Handle(DdbServiceGetProcedure, connect_go.NewUnaryHandler(
 		DdbServiceGetProcedure,
 		svc.Get,
@@ -107,11 +142,20 @@ func NewDdbServiceHandler(svc DdbServiceHandler, opts ...connect_go.HandlerOptio
 		svc.Set,
 		opts...,
 	))
+	mux.Handle(DdbServiceDeleteProcedure, connect_go.NewUnaryHandler(
+		DdbServiceDeleteProcedure,
+		svc.Delete,
+		opts...,
+	))
 	return "/ddb.v1.DdbService/", mux
 }
 
 // UnimplementedDdbServiceHandler returns CodeUnimplemented from all methods.
 type UnimplementedDdbServiceHandler struct{}
+
+func (UnimplementedDdbServiceHandler) Has(context.Context, *connect_go.Request[v1.HasRequest]) (*connect_go.Response[v1.HasResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ddb.v1.DdbService.Has is not implemented"))
+}
 
 func (UnimplementedDdbServiceHandler) Get(context.Context, *connect_go.Request[v1.GetRequest]) (*connect_go.Response[v1.GetResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ddb.v1.DdbService.Get is not implemented"))
@@ -119,4 +163,8 @@ func (UnimplementedDdbServiceHandler) Get(context.Context, *connect_go.Request[v
 
 func (UnimplementedDdbServiceHandler) Set(context.Context, *connect_go.Request[v1.SetRequest]) (*connect_go.Response[v1.SetResponse], error) {
 	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ddb.v1.DdbService.Set is not implemented"))
+}
+
+func (UnimplementedDdbServiceHandler) Delete(context.Context, *connect_go.Request[v1.DeleteRequest]) (*connect_go.Response[v1.DeleteResponse], error) {
+	return nil, connect_go.NewError(connect_go.CodeUnimplemented, errors.New("ddb.v1.DdbService.Delete is not implemented"))
 }

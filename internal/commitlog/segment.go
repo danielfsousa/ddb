@@ -79,7 +79,7 @@ func buildIndex(hint *hint, store *store) (idx *index, err error) {
 				return nil, err
 			}
 			key, pos := scanner.Next()
-			idx.Set(key, pos)
+			idx.Set(key, RecordMetadata{Pos: pos})
 		}
 	} else {
 		scanner, err := store.Scanner()
@@ -91,7 +91,7 @@ func buildIndex(hint *hint, store *store) (idx *index, err error) {
 				return nil, err
 			}
 			rec, pos := scanner.Next()
-			idx.Set(rec.Key, pos)
+			idx.Set(rec.Key, RecordMetadata{Pos: pos, DeletedAt: rec.DeletedAt})
 		}
 	}
 	return idx, nil
@@ -111,21 +111,25 @@ func (s *segment) Append(record *ddbv1.Record) error {
 	if err != nil {
 		return err
 	}
-	s.index.Set(record.Key, pos)
+	s.index.Set(record.Key, RecordMetadata{Pos: pos, DeletedAt: record.DeletedAt})
 	return nil
 }
 
 // Get returns the record for the given key.
 func (s *segment) Get(key string) (rec *ddbv1.Record, exists bool, err error) {
-	pos, exists := s.index.Get(key)
+	meta, exists := s.index.Get(key)
 	if !exists {
 		return nil, false, nil
 	}
-	rec, err = s.store.Read(pos)
+	rec, err = s.store.Read(meta.Pos)
 	if err != nil {
 		return nil, false, err
 	}
 	return rec, true, nil
+}
+
+func (s *segment) GetMetadata(key string) (entry RecordMetadata, exists bool) {
+	return s.index.Get(key)
 }
 
 // Has returns true if the segment has the given key.

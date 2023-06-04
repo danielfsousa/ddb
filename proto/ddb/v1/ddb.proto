@@ -3,8 +3,19 @@ syntax = "proto3";
 package ddb.v1;
 
 service DdbService {
+  rpc Has(HasRequest) returns (HasResponse) {}
   rpc Get(GetRequest) returns (GetResponse) {}
   rpc Set(SetRequest) returns (SetResponse) {}
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {}
+}
+
+message HasRequest {
+  string key = 1;
+}
+
+message HasResponse {
+  string key = 1;
+  bool exists = 2;
 }
 
 message GetRequest {
@@ -22,4 +33,11 @@ message SetRequest {
 }
 
 message SetResponse {
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+message DeleteResponse {
 }

@@ -2,43 +2,35 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"sync"
 
 	"github.com/bufbuild/connect-go"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
+	"github.com/danielfsousa/ddb"
 	ddbv1 "github.com/danielfsousa/ddb/gen/ddb/v1"
 	"github.com/danielfsousa/ddb/gen/ddb/v1/ddbv1connect"
 )
 
-var ErrEmptyKey = errors.New("key cannot be empty")
-
 // Server implements the DdbService API.
 type Server struct {
 	ddbv1connect.UnimplementedDdbServiceHandler
-	config     *Config
 	httpServer *http2.Server
-	mu         sync.Mutex
-	data       map[string][]byte
+	*Config
 }
 
 var _ ddbv1connect.DdbServiceHandler = (*Server)(nil)
 
 // New will create a new Server.
 func New(config *Config) *Server {
-	return &Server{
-		config: config,
-		data:   make(map[string][]byte),
-	}
+	return &Server{Config: config}
 }
 
 // Start will start the Server and block until it is signaled to stop.
 func (s *Server) Start() error {
-	addr := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
+	addr := fmt.Sprintf("%s:%d", s.Host, s.Port)
 	mux := http.NewServeMux()
 	path, handler := ddbv1connect.NewDdbServiceHandler(s)
 	mux.Handle(path, handler)
@@ -69,6 +61,21 @@ func (s *Server) Stop() error {
 	return nil
 }
 
+// Has will return true if the given key exists in the database.
+func (s *Server) Has(
+	_ context.Context,
+	req *connect.Request[ddbv1.HasRequest],
+) (*connect.Response[ddbv1.HasResponse], error) {
+	key := req.Msg.GetKey()
+	if err := validateKey(key); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	exists := s.Ddb.Has(key)
+
+	return connect.NewResponse(&ddbv1.HasResponse{Key: key, Exists: exists}), nil
+}
+
 // Get will return the value for the given key.
 func (s *Server) Get(
 	_ context.Context,
@@ -79,12 +86,12 @@ func (s *Server) Get(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	value, ok := s.data[key]
-	if !ok {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("could not find key %q", key))
+	value, err := s.Ddb.Get(key)
+	if err != nil {
+		if err == ddb.ErrKeyNotFound {
+			return nil, connect.NewError(connect.CodeNotFound, err)
+		}
+		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 
 	return connect.NewResponse(&ddbv1.GetResponse{Key: key, Value: value}), nil
@@ -101,16 +108,38 @@ func (s *Server) Set(
 		return nil, connect.NewError(connect.CodeInvalidArgument, err)
 	}
 
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.data[key] = value
+	err := s.Ddb.Set(key, value)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
 
 	return connect.NewResponse(&ddbv1.SetResponse{}), nil
 }
 
+func (s *Server) Delete(
+	_ context.Context,
+	req *connect.Request[ddbv1.DeleteRequest],
+) (*connect.Response[ddbv1.DeleteResponse], error) {
+	key := req.Msg.GetKey()
+	if err := validateKey(key); err != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, err)
+	}
+
+	if !s.Ddb.Has(key) {
+		return nil, connect.NewError(connect.CodeNotFound, ddb.ErrKeyNotFound)
+	}
+
+	err := s.Ddb.Delete(key)
+	if err != nil {
+		return nil, connect.NewError(connect.CodeNotFound, err)
+	}
+
+	return connect.NewResponse(&ddbv1.DeleteResponse{}), nil
+}
+
 func validateKey(key string) error {
 	if key == "" {
-		return ErrEmptyKey
+		return ddb.ErrKeyEmpty
 	}
 	return nil
 }

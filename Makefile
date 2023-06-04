@@ -26,9 +26,13 @@ build-docker: ## Builds the docker image.
 	@docker build -t github.com/danielfsousa/${NAME}:${TAG} .
 .PHONY: build-docker
 
-run: ## Runs the ddb cli.
-	@$(GO) run main.go
-.PHONY: run
+client: ## Runs the ddb client cli.
+	@$(GO) run cmd/ddb/main.go
+.PHONY: client
+
+server: ## Runs the ddb client cli.
+	@$(GO) run cmd/ddb-server/main.go
+.PHONY: server
 
 clean: ## Runs go clean and deletes binary.
 	@echo "==> Cleaning go files"

@@ -125,6 +125,19 @@ func (l *CommitLog) Get(key string) (rec *ddbv1.Record, exists bool, err error) 
 	return nil, false, nil
 }
 
+// GetMetadata returns the metadata for a key.
+func (l *CommitLog) GetMetadata(key string) (entry RecordMetadata, exists bool) {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+	for i := len(l.segments) - 1; i >= 0; i-- {
+		meta, exists := l.segments[i].GetMetadata(key)
+		if exists {
+			return meta, true
+		}
+	}
+	return RecordMetadata{}, false
+}
+
 // Has returns true if the key exists in the log.
 func (l *CommitLog) Has(key string) bool {
 	l.mu.RLock()

@@ -11,7 +11,11 @@ var expectedIndexKeys = []string{
 	"hello world 2",
 	"hello world 3",
 }
-var expectedIndexPos = []uint64{0, 25, 50}
+var expectedIndexPos = []RecordMetadata{
+	{Pos: 0, DeletedAt: nil},
+	{Pos: 25, DeletedAt: nil},
+	{Pos: 50, DeletedAt: nil},
+}
 
 func TestIndexSetGetDelete(t *testing.T) {
 	idx := newIndex()

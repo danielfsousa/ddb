@@ -1,11 +1,33 @@
 # TODO
 
-1. Implement Delete API
-2. Write hint file on merge/compaction
-3. Implement single leader replication with raft
-4. Implement service discovery with serf
-5. Organize config file
-6. Create helm package
-7. Support redis tcp protocol
-8. Create Go client
-9. Create Javascript client
+## Client
+
+- [ ] Go client
+- [ ] Javascript client
+
+## Server
+
+- [x] Delete API
+- [ ] Graceful shutdown
+- [ ] Support redis tcp protocol
+
+## Storage engine
+
+- [x] Delete tombstone
+- [ ] Backend interface
+- [ ] Global index instead of 1 index per segment?
+- [ ] Merging: delete tombstones and write hint file
+- [ ] Snapshot isolation: MVCC
+
+## Distributed
+
+- [ ] Single leader replication with raft
+- [ ] Service discovery with serf
+
+## Other
+
+- [ ] Open config file if exists config.yaml
+- [ ] Write README.md
+- [ ] Create architecture diagram
+- [ ] CI/CD
+- [ ] Create helm package

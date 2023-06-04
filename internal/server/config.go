@@ -1,5 +1,7 @@
 package server
 
+import "github.com/danielfsousa/ddb"
+
 const (
 	// DefaultAddr is the host to bind to if one is not specified.
 	DefaultHost = "localhost"
@@ -10,6 +12,7 @@ const (
 type Config struct {
 	Host string
 	Port int
+	Ddb  *ddb.Ddb
 }
 
 // NewDefaultConfig creates a new Config with default settings.
