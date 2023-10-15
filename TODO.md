@@ -11,6 +11,9 @@
 - [ ] Scan / Keys API
 - [ ] Graceful shutdown
 - [ ] Support redis tcp protocol
+- [ ] Authentication
+- [ ] Authorization
+- [ ] Telemetry
 
 ## Storage engine
 
@@ -24,6 +27,7 @@
 
 - [ ] Service discovery with serf
 - [ ] Single leader replication with raft
+- [ ] Configurable consistency modes
 
 ## Other
 
