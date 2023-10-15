@@ -1,3 +1,4 @@
+// Package ddb provides a distributed key-value store.
 package ddb
 
 import (

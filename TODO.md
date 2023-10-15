@@ -8,6 +8,7 @@
 ## Server
 
 - [x] Delete API
+- [ ] Scan / Keys API
 - [ ] Graceful shutdown
 - [ ] Support redis tcp protocol
 
@@ -21,8 +22,8 @@
 
 ## Distributed
 
-- [ ] Single leader replication with raft
 - [ ] Service discovery with serf
+- [ ] Single leader replication with raft
 
 ## Other
 
@@ -31,3 +32,4 @@
 - [ ] Create architecture diagram
 - [ ] CI/CD
 - [ ] Create helm package
+- [ ] Homebrew
