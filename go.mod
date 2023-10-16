@@ -52,6 +52,7 @@ require (
 	github.com/spf13/cobra v1.7.0
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.8.4
+	github.com/travisjeffery/go-dynaport v1.0.0
 	golang.org/x/exp v0.0.0-20230425010034-47ecfdc1ba53
 	google.golang.org/protobuf v1.30.0
 )

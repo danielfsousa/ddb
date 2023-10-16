@@ -12,17 +12,15 @@ import (
 	"github.com/danielfsousa/ddb/gen/ddb/v1/ddbv1connect"
 	agent "github.com/danielfsousa/ddb/internal/agent"
 	"github.com/stretchr/testify/require"
+	"github.com/travisjeffery/go-dynaport"
 )
-
-var initialPort = 10000
 
 func TestAgent(t *testing.T) {
 	var agents []*agent.Agent
 	for i := 0; i < 3; i++ {
-		ports := []int{initialPort, initialPort + 1}
+		ports := dynaport.Get(2)
 		bindAddr := fmt.Sprintf("%s:%d", "127.0.0.1", ports[0])
 		rpcPort := ports[1]
-		initialPort += 2
 
 		dataDir := t.TempDir()
 		var startJoinAddrs []string

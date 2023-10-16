@@ -8,9 +8,8 @@ import (
 	. "github.com/danielfsousa/ddb/internal/discovery"
 	"github.com/hashicorp/serf/serf"
 	"github.com/stretchr/testify/require"
+	"github.com/travisjeffery/go-dynaport"
 )
-
-const initialPort = 10000
 
 func TestMembership(t *testing.T) {
 	m, handler := setupMember(t, nil)
@@ -37,7 +36,7 @@ func TestMembership(t *testing.T) {
 
 func setupMember(t *testing.T, members []*Membership) ([]*Membership, *handler) {
 	id := len(members)
-	port := initialPort + id
+	port := dynaport.Get(1)[0]
 	addr := fmt.Sprintf("%s:%d", "127.0.0.1", port)
 	tags := map[string]string{
 		"rpc_addr": addr,
