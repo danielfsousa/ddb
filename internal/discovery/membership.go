@@ -17,6 +17,13 @@ type Membership struct {
 	logger  *zerolog.Logger
 }
 
+type Config struct {
+	NodeName       string
+	BindAddr       string
+	Tags           map[string]string
+	StartJoinAddrs []string
+}
+
 func New(handler Handler, config Config) (*Membership, error) {
 	logger := log.With().Str("component", "membership").Logger()
 	m := &Membership{
@@ -116,11 +123,4 @@ func (m *Membership) logError(err error, msg string, member serf.Member) {
 		Str("name", member.Name).
 		Str("rpc_addr", member.Tags["rpc_addr"]).
 		Msg(msg)
-}
-
-type Config struct {
-	NodeName       string
-	BindAddr       string
-	Tags           map[string]string
-	StartJoinAddrs []string
 }

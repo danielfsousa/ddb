@@ -16,10 +16,10 @@ init: ## Creates the necessary directories.
 	@pre-commit install
 .PHONY: init
 
-build: ## Builds the binary.
+build-server: ## Builds the server binary.
 	@echo "==> Building binary"
-	@$(GO) build -o ${NAME} main.go
-.PHONY: build
+	@$(GO) build -o ${NAME}-server cmd/ddb-server/main.go
+.PHONY: build-server
 
 build-docker: ## Builds the docker image.
 	@echo "==> Building docker image"

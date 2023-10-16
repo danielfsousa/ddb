@@ -6,6 +6,8 @@ import (
 	"net/http"
 
 	"github.com/bufbuild/connect-go"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/net/http2"
 	"golang.org/x/net/http2/h2c"
 
@@ -16,16 +18,27 @@ import (
 
 // Server implements the DdbService API.
 type Server struct {
+	*Config
 	ddbv1connect.UnimplementedDdbServiceHandler
 	httpServer *http2.Server
-	*Config
+	logger     *zerolog.Logger
+}
+
+type Config struct {
+	Host string
+	Port int
+	Ddb  *ddb.Ddb
 }
 
 var _ ddbv1connect.DdbServiceHandler = (*Server)(nil)
 
 // New will create a new Server.
 func New(config *Config) *Server {
-	return &Server{Config: config}
+	logger := log.With().Str("component", "server").Logger()
+	return &Server{
+		Config: config,
+		logger: &logger,
+	}
 }
 
 // Start will start the Server and block until it is signaled to stop.
@@ -35,15 +48,7 @@ func (s *Server) Start() error {
 	path, handler := ddbv1connect.NewDdbServiceHandler(s)
 	mux.Handle(path, handler)
 	s.httpServer = &http2.Server{}
-
-	// sigc := make(chan os.Signal, 1)
-	// signal.Notify(sigc, os.Interrupt)
-	// go func() {
-	// 	<-sigc
-	// 	// TODO: graceful shutdown
-	// }()
-
-	fmt.Println("Server listening on", addr)
+	s.logger.Info().Msgf("server listening on %s", addr)
 	return http.ListenAndServe( //nolint:gosec // TODO: fix this
 		addr,
 		// Use h2c so we can serve HTTP/2 without TLS.
@@ -53,11 +58,10 @@ func (s *Server) Start() error {
 
 // Stop will attempt to gracefully shut the Server down by signaling the stop.
 func (s *Server) Stop() error {
-	if s.httpServer != nil {
-		fmt.Println("should stop server")
-		// 	// TODO: graceful shutdown
-		// s.httpServer.Stop()
-	}
+	// TODO: graceful shutdown
+	// if s.httpServer != nil {
+	// s.httpServer.Stop()
+	// }
 	return nil
 }
 
